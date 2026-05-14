@@ -40,31 +40,53 @@
 <script>
 
 async function downloadVideo() {
+  const urlEl = document.getElementById("url")
+  const formatEl = document.getElementById("format")
+  const btn = event?.target || document.querySelector('button')
+  const result = document.getElementById("result")
 
-    const url = document.getElementById("url").value
-    const format = document.getElementById("format").value
+  const url = urlEl.value.trim()
+  const format = formatEl.value
 
-    const response = await fetch("http://localhost:8000/download", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            url,
-            format_type: format
-        })
+  if (!url) {
+    result.innerHTML = `<div class="text-red-400">Please enter a URL</div>`
+    return
+  }
+
+  btn.disabled = true
+  btn.classList.add('opacity-60')
+  result.innerHTML = `<div class="text-yellow-300">Downloading...</div>`
+
+  try {
+    const response = await fetch("http://127.0.0.1:8000/download", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url, format_type: format })
     })
 
     const data = await response.json()
 
-    document.getElementById("result").innerHTML = `
-        <a
-          href="http://localhost:8000${data.download_url}"
-          class="text-green-400 underline"
-        >
-          Download ${data.title}
-        </a>
+    if (!response.ok) {
+      const err = data?.error || JSON.stringify(data)
+      result.innerHTML = `<div class="text-red-400">Error: ${err}</div>`
+      return
+    }
+
+    const title = data.title || data.download_url || 'video'
+    const href = `http://127.0.0.1:8000${data.download_url}`
+
+    result.innerHTML = `
+      <a href="${href}" class="text-green-400 underline" download>
+        Download ${title}
+      </a>
     `
+
+  } catch (err) {
+    result.innerHTML = `<div class="text-red-400">Network error: ${err.message || err}</div>`
+  } finally {
+    btn.disabled = false
+    btn.classList.remove('opacity-60')
+  }
 }
 
 </script>
