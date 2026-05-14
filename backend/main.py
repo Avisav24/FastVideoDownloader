@@ -8,6 +8,7 @@ import yt_dlp
 import uuid
 import os
 import asyncio
+import shutil
 
 app = FastAPI()
 
@@ -30,6 +31,20 @@ async def download_video(data: VideoRequest):
         "format": "bestvideo+bestaudio/best",
         "merge_output_format": data.format_type,
     }
+
+    # If format requires merging (e.g., bestvideo+bestaudio), ensure ffmpeg is available
+    needs_merge = "+" in ydl_opts.get("format", "")
+    ffmpeg_path = shutil.which("ffmpeg") or shutil.which("ffmpeg.exe")
+    if needs_merge and not ffmpeg_path:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "error": (
+                    "ffmpeg not found. Merging video and audio requires ffmpeg. "
+                    "Install ffmpeg and add it to your PATH. See https://ffmpeg.org/download.html"
+                )
+            },
+        )
 
     try:
         def download():
