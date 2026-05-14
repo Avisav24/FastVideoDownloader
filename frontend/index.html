@@ -1,95 +1,105 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-  <title>YT Downloader</title>
+  <head>
+    <title>YT Downloader</title>
 
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
+    <!-- Set this meta to your deployed backend URL when hosting the frontend on Vercel -->
+    <meta name="api-base" content="" />
 
-<body class="bg-black text-white min-h-screen flex items-center justify-center">
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
 
-<div class="w-full max-w-xl p-8 bg-zinc-900 rounded-2xl">
-
-  <h1 class="text-3xl font-bold mb-6">
-    YouTube Downloader
-  </h1>
-
-  <input
-    id="url"
-    type="text"
-    placeholder="Paste YouTube URL"
-    class="w-full p-4 rounded bg-zinc-800 mb-4"
-  />
-
-  <select id="format" class="w-full p-4 rounded bg-zinc-800 mb-4">
-    <option value="mp4">MP4</option>
-    <option value="webm">WEBM</option>
-  </select>
-
-  <button
-    onclick="downloadVideo()"
-    class="w-full bg-white text-black p-4 rounded font-bold"
+  <body
+    class="bg-black text-white min-h-screen flex items-center justify-center"
   >
-    Download
-  </button>
+    <div class="w-full max-w-xl p-8 bg-zinc-900 rounded-2xl">
+      <h1 class="text-3xl font-bold mb-6">YouTube Downloader</h1>
 
-  <div id="result" class="mt-6"></div>
+      <input
+        id="url"
+        type="text"
+        placeholder="Paste YouTube URL"
+        class="w-full p-4 rounded bg-zinc-800 mb-4"
+      />
 
-</div>
+      <select id="format" class="w-full p-4 rounded bg-zinc-800 mb-4">
+        <option value="mp4">MP4</option>
+        <option value="webm">WEBM</option>
+      </select>
 
-<script>
+      <button
+        onclick="downloadVideo()"
+        class="w-full bg-white text-black p-4 rounded font-bold"
+      >
+        Download
+      </button>
 
-async function downloadVideo() {
-  const urlEl = document.getElementById("url")
-  const formatEl = document.getElementById("format")
-  const btn = event?.target || document.querySelector('button')
-  const result = document.getElementById("result")
+      <div id="result" class="mt-6"></div>
+    </div>
 
-  const url = urlEl.value.trim()
-  const format = formatEl.value
+    <script>
+      async function downloadVideo() {
+        const urlEl = document.getElementById("url");
+        const formatEl = document.getElementById("format");
+        const btn = event?.target || document.querySelector("button");
+        const result = document.getElementById("result");
 
-  if (!url) {
-    result.innerHTML = `<div class="text-red-400">Please enter a URL</div>`
-    return
-  }
+        const url = urlEl.value.trim();
+        const format = formatEl.value;
 
-  btn.disabled = true
-  btn.classList.add('opacity-60')
-  result.innerHTML = `<div class="text-yellow-300">Downloading...</div>`
+        const meta = document.querySelector('meta[name="api-base"]');
+        const API_BASE =
+          (meta && meta.content && meta.content.trim()) ||
+          (location.hostname.includes("localhost")
+            ? "http://127.0.0.1:8000"
+            : "");
 
-  try {
-    const response = await fetch("http://127.0.0.1:8000/download", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url, format_type: format })
-    })
+        if (!API_BASE) {
+          result.innerHTML = `<div class="text-red-400">Backend URL not configured. Set &lt;meta name=\"api-base\" content=\"https://your-backend.example\"&gt; in the HTML.</div>`;
+          btn.disabled = false;
+          btn.classList.remove("opacity-60");
+          return;
+        }
 
-    const data = await response.json()
+        if (!url) {
+          result.innerHTML = `<div class="text-red-400">Please enter a URL</div>`;
+          return;
+        }
 
-    if (!response.ok) {
-      const err = data?.error || JSON.stringify(data)
-      result.innerHTML = `<div class="text-red-400">Error: ${err}</div>`
-      return
-    }
+        btn.disabled = true;
+        btn.classList.add("opacity-60");
+        result.innerHTML = `<div class="text-yellow-300">Downloading...</div>`;
 
-    const title = data.title || data.download_url || 'video'
-    const href = `http://127.0.0.1:8000${data.download_url}`
+        try {
+          const response = await fetch(`${API_BASE}/download`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url, format_type: format }),
+          });
 
-    result.innerHTML = `
+          const data = await response.json();
+
+          if (!response.ok) {
+            const err = data?.error || JSON.stringify(data);
+            result.innerHTML = `<div class="text-red-400">Error: ${err}</div>`;
+            return;
+          }
+
+          const title = data.title || data.download_url || "video";
+          const href = `${API_BASE}${data.download_url}`;
+
+          result.innerHTML = `
       <a href="${href}" class="text-green-400 underline" download>
         Download ${title}
       </a>
-    `
-
-  } catch (err) {
-    result.innerHTML = `<div class="text-red-400">Network error: ${err.message || err}</div>`
-  } finally {
-    btn.disabled = false
-    btn.classList.remove('opacity-60')
-  }
-}
-
-</script>
-
-</body>
+    `;
+        } catch (err) {
+          result.innerHTML = `<div class="text-red-400">Network error: ${err.message || err}</div>`;
+        } finally {
+          btn.disabled = false;
+          btn.classList.remove("opacity-60");
+        }
+      }
+    </script>
+  </body>
 </html>
